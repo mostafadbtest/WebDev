@@ -1,0 +1,31 @@
+{% include "_header.html" %}
+
+<main id="delete-profile">
+    <h1>{{ languages[lan+"_delete_profile"] if hasattr(languages, lan+"_delete_profile") else "Delete Profile" }}</h1>
+    {% if message %}
+    <div class="toast error">
+        {{ message }}
+    </div>
+    {% endif %}
+
+    <p>
+        {{ languages[lan+"_delete_profile_instruction"] if hasattr(languages, lan+"_delete_profile_instruction") else "Please enter your password to confirm account deletion. This will send a confirmation email to finalize the deletion." }}
+    </p>
+
+    <form action="/delete-profile/{{ lan }}" method="POST">
+        <input type="hidden" name="lan" value="{{ lan }}">
+        <div class="form-group">
+            <input 
+                type="password" 
+                name="current_password" 
+                placeholder="{{ languages[lan+'_enter_password'] if hasattr(languages, lan+'_enter_password') else 'Enter your password' }}" 
+                required
+            >
+            <button type="submit">
+                {{ languages[lan+"_delete_profile"] if hasattr(languages, lan+"_delete_profile") else "Delete Profile" }}
+            </button>
+        </div>
+    </form>
+</main>
+
+{% include "_footer.html" %}

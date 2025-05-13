@@ -1,0 +1,68 @@
+@import 'variables.css';
+
+
+
+#profile {
+    max-width: 500px;
+    margin: 3rem auto;
+    background-color: var(--background-white);
+    padding: 2.5rem;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: var(--shadow-light);
+    transition: transform 0.3s ease;
+}
+
+#profile:hover {
+    transform: translateY(-5px);
+}
+
+#profile h1 {
+    color: var(--primary);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-semibold);
+    margin-bottom: 1.5rem;
+}
+
+#profile .info {
+    color: var(--text-dark);
+    padding: 1.5rem;
+    margin: 1rem 0;
+    border: 1px solid var(--neutral-dark);
+    border-radius: 8px;
+    text-align: left;
+}
+
+
+.delete-profile-btn {
+    display: inline-block;
+    margin-top: 2rem;
+    padding: 0.8rem 2.8rem;
+    background-color: var(--error);
+    color: var(--text-light);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    width: 12rem;
+}
+
+.delete-profile-btn:hover {
+    background-color: var(--accent-light);
+    transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+    #profile {
+        max-width: 90%;
+        margin: 2rem auto;
+        padding: 1.5rem;
+    }
+
+    #profile .info {
+        padding: 1rem;
+    }
+
+    .delete-profile-btn {
+        width: 100%;
+    }
+}

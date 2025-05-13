@@ -1,0 +1,23 @@
+{% include "_header.html" %}
+
+<main id="edit-items">
+  <h1>{{ languages[lan+"_edit_your_items"] if hasattr(languages, lan+"_edit_your_items") else "Edit Your Items" }}</h1>
+  
+  <div class="items-container">
+    {% for item in items %}
+      <div class="item-card">
+        <div class="item-details">
+          <h3>{{ item.item_name }}</h3>
+        </div>
+        <a href="/edit-item/{{ item.item_pk }}/{{lan}}" class="edit-item-btn">{{ languages[lan+"_edit"] if hasattr(languages, lan+"_edit") else "Edit" }}</a>
+      </div>
+    {% else %}
+      <div class="no-items">
+        <p>{{ languages[lan+"_no_items"] if hasattr(languages, lan+"_no_items") else "You haven't added any items yet." }}</p>
+        <a href="/add-item/{{lan}}" class="add-item-btn">{{ languages[lan+"_add_first_item"] if hasattr(languages, lan+"_add_first_item") else "Add Your First Item" }}</a>
+      </div>
+    {% endfor %}
+  </div>
+</main>
+
+{% include "_footer.html" %}

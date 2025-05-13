@@ -1,0 +1,36 @@
+{% include "_header.html" %}
+
+<main class="admin-dashboard">
+  <h1 class="dashboard-title">
+    {% if lan == "dk" %}{{ languages.dk_admin_user_items }}{% else %}{{ languages.en_admin_user_items }}{% endif %}
+  </h1>
+
+  <section class="admin-content">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th class="table-header">{% if lan == "dk" %}{{ languages.dk_item_name }}{% else %}{{ languages.en_item_name }}{% endif %}</th>
+          <th class="table-header">{% if lan == "dk" %}{{ languages.dk_owner }}{% else %}{{ languages.en_owner }}{% endif %}</th>
+          <th class="table-header">{% if lan == "dk" %}{{ languages.dk_actions }}{% else %}{{ languages.en_actions }}{% endif %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr id="item-{{ item.item_pk }}" class="table-row">
+          <td class="table-cell">{{ item.item_name }}</td>
+          <td class="table-cell">{{ item.user_username }} ({{ item.user_name }} {{ item.user_last_name }})</td>
+          <td class="table-cell">
+            {% if item.item_blocked_at and item.item_blocked_at > 0 %}
+              {% include "_button_unblock_item.html" %}
+            {% else %}
+              {% include "_button_block_item.html" %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</main>
+
+{% include "_footer.html" %}

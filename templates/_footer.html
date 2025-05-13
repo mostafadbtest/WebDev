@@ -1,0 +1,58 @@
+<footer>
+    <hr> 
+    <p>&copy; {{ current_year }} CPH Sightseer. All rights reserved.</p>
+</footer>
+
+<!-- JavaScript files loaded after HTML is parsed -->
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/mixhtml.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/toast.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/search.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/scrollPosition.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/publish_item.js') }}" defer></script>
+
+<script>
+    var map = L.map('map', {
+      center: [55.6761, 12.5683], 
+      zoom: 10.5,
+  
+      dragging: true,
+      touchZoom: false,
+      scrollWheelZoom: true,
+      doubleClickZoom: true,
+      boxZoom: false,
+      keyboard: true,
+  
+      zoomControl: true
+    });
+  
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+  
+
+    if (map.tap) {
+      map.tap.disable();
+    }
+  
+    document.getElementById('map').style.cursor = 'default';
+  
+    {% for item in items %}
+      var customIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div mix-get="/items/{{ item.item_pk }}" class="custom-marker">{{ item.item_name[:1] }}</div>`,
+        
+      
+        iconSize: [50, 50],
+        iconAnchor: [25, 25]
+      });
+      L.marker([{{ item.item_lat }}, {{ item.item_lon }}], { icon: customIcon })
+        .addTo(map)
+        .openPopup();
+    {% endfor %}
+  
+   
+  </script>
+  
+</body>
+</html>

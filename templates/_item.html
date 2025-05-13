@@ -1,0 +1,38 @@
+<div id="item">
+    
+    {% if '/' in item.item_image %}
+        <img src="{{ url_for('static', filename=item.item_image) }}" alt="{{ item.item_name }}">
+    {% else %}
+        <img src="{{ url_for('static', filename='images/'+item.item_image) }}" alt="{{ item.item_name }}">
+    {% endif %}
+    
+    <h2 class="item-title">{{ item.item_name }}</h2>
+    
+    <div class="price-container">
+        <div class="price-usd">
+            <span class="price-value">{{ "{:,}".format(item.item_price) }} USD</span>
+        </div>
+        
+        <div class="price-dkk">
+            <span class="price-value">{{ "{:,.0f}".format(item.item_price * rates.rates.DKK) }} DKK</span>
+        </div>
+    </div>
+    
+
+    
+    {% if item.item_description %}
+    <div class="item-description">
+        <p class="description-text">{{ item.item_description }}</p>
+    </div>
+    {% endif %}
+    
+    <div class="button-container">
+        <a href="{{ url_for('get_item_window', item_pk=item.item_pk, lan=lan) }}" class="action-button details-button" target="_blank">
+            <span class="button-text">View Item Details</span>
+        </a>
+    </div>
+</div>
+
+</div>
+
+

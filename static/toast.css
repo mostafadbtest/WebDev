@@ -1,0 +1,56 @@
+@import 'variables.css'; 
+
+.toast {
+    position: fixed;
+    top: 65px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    z-index: 1000;
+    animation: slideDown 0.5s ease-out;
+    animation: slideDown 0.4s ease forwards;
+
+    color: var(--text-light); 
+}
+
+.toast.success {
+    background-color: var(--success);
+}
+
+
+.toast.error {
+    background-color: var(--error); 
+}
+
+.toast.error {
+    background-color: var(--error); 
+}
+
+
+@keyframes slideDown {
+    from {
+        transform: translate(-50%, -100%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+}
+
+#toast_container {
+    pointer-events: none;
+    width: 100%;
+    position: fixed;
+    top: 1rem;
+    left: 0;
+}
+
+#toast_container #toast { 
+    margin: auto;
+    width: 20%; 
+    padding: 1rem 0;
+    text-align: center;
+    border-radius: 5px;
+}

@@ -1,0 +1,76 @@
+{% include "_header.html" %}
+
+<div id="container">
+  
+<main id="edit-item">
+  <h1>{{ languages[lan+"_edit_item"] if hasattr(languages, lan+"_edit_item") else "Edit Item" }}</h1>
+
+  {% if error_message %}
+    <div class="toast error">
+      {{ error_message }}
+    </div>
+  {% endif %}
+
+  <form action="/edit-item/{{ item.item_pk }}/{{lan}}" method="POST">
+    <div class="form-group">
+      <label for="item_name">{{ languages[lan+"_name"] if hasattr(languages, lan+"_name") else "Name" }}</label>
+      <input 
+        id="item_name" 
+        name="item_name" 
+        value="{{ old_values.item_name or item.item_name }}"
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="item_price">{{ languages[lan+"_price"] if hasattr(languages, lan+"_price") else "Price" }}</label>
+      <input 
+        id="item_price" 
+        name="item_price" 
+        type="number" 
+        value="{{ old_values.item_price or item.item_price }}"
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="item_lon">{{ languages[lan+"_longitude"] if hasattr(languages, lan+"_longitude") else "Longitude" }}</label>
+      <input 
+        id="item_lon" 
+        name="item_lon" 
+        value="{{ old_values.item_lon or item.item_lon }}"
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="item_lat">{{ languages[lan+"_latitude"] if hasattr(languages, lan+"_latitude") else "Latitude" }}</label>
+      <input 
+        id="item_lat" 
+        name="item_lat" 
+        value="{{ old_values.item_lat or item.item_lat }}"
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="item_description">{{ languages[lan+"_item_description"] if hasattr(languages, lan+"_item_description") else "Description" }}</label>
+      <textarea 
+        id="item_description" 
+        name="item_description" 
+        class="form-control"
+        rows="4">{{ item.item_description if item and item.item_description else old_values.get('item_description', '') }}</textarea>
+    </div>
+    
+    <div class="form-group">
+      <label for="item_contact_url">{{ languages[lan+"_item_contact_url"] if hasattr(languages, lan+"_item_contact_url") else "Website URL" }}</label>
+      <input 
+        type="url" 
+        id="item_contact_url" 
+        name="item_contact_url" 
+        class="form-control" 
+        value="{{ item.item_contact_url if item and item.item_contact_url else old_values.get('item_contact_url', '') }}">
+    </div>
+
+    <input type="hidden" name="lan" value="{{ lan }}">
+    <button type="submit" class="save-btn">{{ languages[lan+"_save_changes"] if hasattr(languages, lan+"_save_changes") else "Save Changes" }}</button>
+  </form>
+</main>
+</div>
+{% include "_footer.html" %}

@@ -1,0 +1,55 @@
+@import 'variables.css';
+
+main#login, main#signup {
+    display: flex;
+    min-height: 100vh;
+    padding: 2rem;
+
+    form {
+        display: flex;
+        flex-direction: column;
+        width: 400px;
+        gap: 1rem;
+        margin: auto;
+        padding: 2.5rem;
+        background-color: var(--background-white);
+        border-radius: 12px;
+        box-shadow: var(--shadow-dark);
+    }
+    
+    h1 {
+        color: var(--primary);
+        font-size: 1.8rem;
+        font-weight: var(--font-semibold);
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+}
+
+
+@media (max-width: 768px) {
+    main#login, main#signup {
+        padding: 1rem;
+        
+        form {
+            width: 100%;
+            padding: 1.5rem;
+        }
+
+        input, button {
+            width: 100%;
+            margin-bottom: 0;
+        }
+
+        button {
+            margin-top: 1rem;
+            position: static;
+        }
+    }
+}
+
+main#login input:focus,
+main#signup input:focus {
+    border: 1.5px solid var(--primary);
+    outline: none;
+}

@@ -1,0 +1,72 @@
+{% include "_header.html" %}
+
+{% if error_message %}
+<div class="toast error">
+    {{ error_message }}
+</div>
+{% endif %}
+
+<main id="signup">
+    <form method="post" action="/signup/{{lan}}">
+        <h1>{{ languages[lan+"_signup"] }}</h1>
+        
+        <input type="hidden" name="lan" value="{{ lan }}">
+
+        <input 
+            class="{{ user_username_error }}" 
+            name="user_username" 
+            type="text" 
+            placeholder="{{ languages[lan+'_user_username'] }}"
+            value="{{ old_values.get('user_username', '') }}"
+        >
+        
+
+        <input 
+            class="{{ user_name_error }}" 
+            name="user_name" 
+            type="text" 
+            placeholder="{{ languages[lan+'_user_name'] }}"
+            value="{{ old_values.get('user_name', '') }}"
+        >
+
+        <input 
+            class="{{ user_last_name_error }}" 
+            name="user_last_name" 
+            type="text" 
+            placeholder="{{ languages[lan+'_user_last_name'] }}"
+            value="{{ old_values.get('user_last_name', '') }}"
+        >
+
+        <input 
+            class="{{ user_email_error }}" 
+            name="user_email" 
+            type="text" 
+            placeholder="{{ languages[lan+'_user_email'] }}"
+            value="{{ old_values.get('user_email', '') }}"
+        >
+
+        <input 
+            class="{{ user_password_error }}" 
+            name="user_password" 
+            type="password" 
+            placeholder="{{ languages[lan+'_user_password'] }}"
+            value="{{ old_values.get('user_password', '') }}"
+        >
+
+        <input 
+            class="{{ user_repeat_password_error }}" 
+            name="user_repeat_password" 
+            type="password" 
+            placeholder="{{ languages[lan+'_user_repeat_password'] }}"
+            value="{{ old_values.get('user_repeat_password', '') }}"
+        >
+            
+        <button>{{ languages[lan+"_signup_button"] }}</button>
+    </form>
+</main>
+
+{% include "_footer.html" %}
+
+
+
+

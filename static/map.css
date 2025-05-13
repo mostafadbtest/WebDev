@@ -1,0 +1,46 @@
+@import 'variables.css';
+
+.map-container {
+  height: calc(100vh - 6rem);
+  width: 100%;
+  grid-column: 1;
+
+  #map {
+    height: 100%;
+    width: 100%;
+    z-index: 1;
+    position: relative !important;
+    max-width: none;
+    border-radius: 8px;
+    box-shadow: var(--shadow-light);
+    background-color: var(--background-white); 
+
+
+    .custom-marker {
+      width: 50px;
+      height: 50px;
+      background-color: var(--secondary); 
+      border-radius: 50%;
+      text-align: center;
+      line-height: 50px;
+      color: var(--text-light); 
+      font-size: 1rem;
+      transition: transform 0.2s ease, background-color 0.2s ease;
+      cursor: pointer;
+
+      &:hover {
+        transform: scale(1.1);
+        background-color: var(--secondary-light); 
+      }
+    }
+  }
+}
+
+
+.leaflet-touch {
+  .leaflet-control-attribution,
+  .leaflet-control-layers,
+  .leaflet-bar {
+    display: none !important;
+  }
+}

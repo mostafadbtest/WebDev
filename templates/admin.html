@@ -1,0 +1,63 @@
+{% include "_header.html" %}
+
+<main class="admin-dashboard">
+  <h1 class="dashboard-title">
+    {{ languages[lan + "_User_Management_Title"] }}
+  </h1>
+  
+  <div class="admin-navigation">
+    <a href="{{ url_for('admin_user_items', lan=lan) }}" class="admin-nav-button">
+      {{ languages[lan + "_view_user_items"] }}
+    </a>
+  </div>
+
+  <section class="admin-content">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th class="table-header">
+            {{ languages[lan + "_user_email"] }}
+          </th>
+          <th class="table-header">
+            {{ languages[lan + "_user_username"] }}
+          </th>
+          <th class="table-header">
+            {{ languages[lan + "_user_last_name"] }}
+          </th>
+          <th class="table-header">
+            {{ languages[lan + "_block_unblock"] }}
+          </th>
+          <th class="table-header">
+            {{ languages[lan + "_actions"] }}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr id="user-{{ user.user_pk }}" class="table-row">
+          <td class="table-cell">{{ user.user_email }}</td>
+          <td class="table-cell">{{ user.user_username or user.user_name }}</td>
+          <td class="table-cell">{{ user.user_last_name }}</td>
+          <td class="table-cell">
+            {% if user.user_blocked_at == None or user.user_blocked_at == 0 %}
+            {% include "_button_block_user.html" %}
+            {% else %}
+            {% include "_button_unblock_user.html" %}
+            {% endif %}
+          </td>
+          <td class="table-cell">
+            {% set confirm_key = lan ~ "_confirm_delete_user" %}
+            {% set confirm_msg = languages[confirm_key] %}
+            <button class="btn btn-delete"
+              onclick="if (confirm('{{ confirm_msg }}')) delete_user('{{ user.user_pk }}');">
+              {{ languages[lan + "_delete"] }}
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</main>
+
+{% include "_footer.html" %}

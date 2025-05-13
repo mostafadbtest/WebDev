@@ -1,0 +1,128 @@
+{% include "_header.html" %}
+
+{% if message %}
+<div class="toast success">
+    {{ message }}
+</div>
+{% endif %}
+
+{% if error_message %}
+<div class="toast error">
+    {{ error_message }}
+</div>
+{% endif %}
+
+<main class="container">
+    <h1>{{ languages[lan+"_create_new_item"] if hasattr(languages, lan+"_create_new_item") else "Create New Item" }}
+    </h1>
+    <p>{{ languages[lan+"_welcome"] if hasattr(languages, lan+"_welcome") else "Welcome" }}, {{ user.user_name }}</p>
+
+    <div class="item-creation-container">
+
+        <!-- STEP 1: Upload & Manage Images -->
+        <section class="image-upload-section">
+            <h2>{{ languages[lan+"_step1_upload_images"] if hasattr(languages, lan+"_step1_upload_images") else "Step 1:
+                Upload Images" }}</h2>
+            <form id="upload-form" class="upload-form" enctype="multipart/form-data">
+                <input name="files" type="file" multiple class="file-input">
+                <button type="button" id="upload-button" class="upload-btn">
+                    {{ languages[lan+"_upload_images"] if hasattr(languages, lan+"_upload_images") else "Upload Images"
+                    }}
+                </button>
+            </form>
+
+            <div class="images-container">
+                <h3>{{ languages[lan+"_your_images"] if hasattr(languages, lan+"_your_images") else "Your Images" }}
+                </h3>
+                <p>{{ languages[lan+"_select_image"] if hasattr(languages, lan+"_select_image") else "Select an image to
+                    use for your item:" }}</p>
+                <div id="images" class="image-grid">
+                    {% if images %}
+                    {% for img in images %}
+                    <div id="x{{ img.image_pk }}" class="image-card">
+                        <label class="image-selection">
+                            <input type="radio" name="selected_image_pk" value="{{ img.image_pk }}" class="image-radio"
+                                onclick="selectImage('{{ img.image_pk }}')" {% if
+                                old_values.selected_image_pk==img.image_pk %}checked{% endif %}>
+                            <img src="/static/uploads/{{ img.image_name }}" alt="Item image">
+                            {% if img.item_fk %}
+                            <span class="status used">{{ languages[lan+"_published"] if hasattr(languages,
+                                lan+"_published") else "Published" }}</span>
+                            {% endif %}
+                        </label>
+                        <button mix-delete="/images/{{ img.image_pk }}" class="delete-btn">
+                            {{ languages[lan+"_delete"] if hasattr(languages, lan+"_delete") else "Delete" }}
+                        </button>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="no-images">{{ languages[lan+"_no_images"] if hasattr(languages, lan+"_no_images") else "No
+                        images uploaded yet" }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+       
+        <section class="item-details-section">
+            <h2>{{ languages[lan+"_step2_item_details"] if hasattr(languages, lan+"_step2_item_details") else "Step 2:
+                Item Details" }}</h2>
+            <form id="publish-form" action="{{ url_for('publish_item') }}" method="post" class="item-form">
+                <input type="hidden" id="selected_image_pk" name="selected_image_pk"
+                    value="{{ old_values.selected_image_pk or '' }}">
+                <input type="hidden" name="lan" value="{{ lan }}">
+
+                <div class="form-group">
+                    <label for="item_name">{{ languages[lan+"_item_name"] if hasattr(languages, lan+"_item_name") else
+                        "Item Name" }}</label>
+                    <input type="text" id="item_name" name="item_name" required
+                        value="{{ old_values.item_name or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="item_price">{{ languages[lan+"_price"] if hasattr(languages, lan+"_price") else "Price"
+                        }}</label>
+                    <input type="number" id="item_price" name="item_price" required
+                        value="{{ old_values.item_price or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="item_lon">{{ languages[lan+"_longitude"] if hasattr(languages, lan+"_longitude") else
+                        "Longitude" }}</label>
+                    <input type="text" id="item_lon" name="item_lon" required value="{{ old_values.item_lon or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="item_lat">{{ languages[lan+"_latitude"] if hasattr(languages, lan+"_latitude") else
+                        "Latitude" }}</label>
+                    <input type="text" id="item_lat" name="item_lat" required value="{{ old_values.item_lat or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="item_description">
+                        {{ languages[lan + "_item_description"] if hasattr(languages, lan + "_item_description") else
+                        "Item Description" }}
+                    </label>
+                    
+                    <textarea name="item_description" id="item_description" rows="4" 
+                        placeholder="{{ languages[lan + '_enter_description'] if hasattr(languages, lan + '_enter_description') }}">{{ old_values.item_description or '' }}</textarea>
+
+                    <label for="item_url">
+                        {{ languages[lan + "_item_contact_url"] if hasattr(languages, lan + "_item_contact_url") else
+                        "Contact / Website URL" }}
+                    </label>
+                    <input name="item_contact_url" id="item_url" type="url"
+                        value="{{ old_values.item_contact_url or '' }}">
+                </div>
+
+
+                <button type="submit" class="publish-btn">
+                    {{ languages[lan+"_publish_item"] if hasattr(languages, lan+"_publish_item") else "Publish Item" }}
+                </button>
+            </form>
+        </section>
+
+    </div>
+</main>
+
+{% include "_footer.html" %}

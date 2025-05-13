@@ -1,0 +1,39 @@
+{% include "_header.html" %}
+
+   <nav class="search-nav">
+    <div id="search_overlay" class="hidden"></div>
+
+    <div id="search_container">
+        <input id="input_search" oninput="search()" type="text" placeholder="{{ languages[lan+'_search_items'] }}">
+        <div id="search_results" class="hidden">
+        </div>
+    </div>
+</nav>
+
+<main id="main-item">
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
+    
+    <div id="items_more">
+        <div id="items">
+            {% for item in items[:2] %}
+                {% include "_item_mini.html" %}
+            {% endfor %}
+        </div>
+        {% include "_button_more_items.html" %}
+    </div>
+    
+    
+    <div id="middle">
+        {% if selected_item %}
+            {% include "_item.html" %}
+        {% else %}
+            <div id="item" class="placeholder">
+                <p>{{ languages[lan+'_select_item'] }}</p>
+            </div>
+        {% endif %}
+    </div>
+</main>
+
+{% include "_footer.html" %}

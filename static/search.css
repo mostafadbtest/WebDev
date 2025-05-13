@@ -1,0 +1,150 @@
+@import 'variables.css';
+
+#search_container {
+    position: relative;
+    z-index: 10000;
+    width: 50%;
+    margin: 0 auto;
+}
+
+#search_container #search_results {
+    position: absolute;
+    top: 2.5rem;
+    left: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    border: 0px solid var(--neutral-dark);
+    background: var(--background-white);
+    box-shadow: var(--primary);
+    border-radius: 5px;
+    padding: 0.5rem 0;
+}
+.instant-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    width: 100%;
+    cursor: pointer;
+    justify-content: space-between;
+}
+
+#search_container #search_results .instant-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    width: 100%;
+    cursor: pointer;
+}
+
+#search_container #search_results .instant-item * {
+    pointer-events: none;
+}
+
+#search_container #search_results .instant-item img {
+    width: 3rem;
+    height: 3rem;
+    margin-right: 1rem;
+    border-radius: 100%;
+}
+
+
+.search-nav {
+    align-items: center;
+    width: 100%;
+    height: 4rem;
+    padding: 0 1rem;
+    background-color: var(--background-white);
+    position: relative;
+    z-index: 99999;
+}
+
+.search-nav a {
+    font-weight: var(--font-semibold);
+    color: var(--primary);
+    text-decoration: none;
+}
+
+
+#search_results {
+    position: absolute;
+    top: 2.5rem;
+    left: 0;
+    width: 100%;
+    background: var(--background-white);
+    border-radius: 5px;
+    box-shadow: var(--neutral-dark);
+    z-index: 10001;
+    padding: 0.5rem 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#search_results .instant-item {
+    display: block;
+    width: 100%;
+}
+
+#search_results .instant-item a {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    color: var(--primary);
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+#search_results .instant-item a:hover {
+    background-color: var(--background-gray);
+}
+
+
+#search_results .instant-item a img {
+    width: 2.5rem;
+    height: 2.5rem;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 1px solid var(--neutral-dark);
+}
+
+/* Search input styling */
+#input_search {
+    border: 1px solid var(--primary);
+    background: var(--background-white);
+    width: 100%;
+    height: 2.5rem;
+    padding: 0 5px;
+    border-radius: 10px;
+    font-size: var(--font-size-base);
+    color: var(--primary);
+}
+
+.hidden {
+    display: none !important;
+}
+
+#search_overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: var(--search_overlay); 
+    z-index: 9999;
+    transition: opacity 0.2s;
+    opacity: 1;
+}
+
+#search_overlay.hidden {
+    display: none;
+    opacity: 0;
+}
+
+/* Make sure search container and dropdown are above the overlay */
+#search_container, #search_results {
+    position: relative;
+    z-index: 10000;
+}

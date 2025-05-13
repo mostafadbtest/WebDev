@@ -1,0 +1,25 @@
+{% include "_header.html" %}
+
+
+<main id="profile">
+    <h1>{{ languages[lan+"_profile"] }}</h1>
+    <p class="greeting">{{ languages[lan+"_greeting"] }} {{ user.user_name }} {{ user.user_last_name }}</p>
+
+    <section class="info">
+        <div><strong>{{ languages[lan+"_email"] }}:</strong> {{ user.user_email }}</div>
+        <div><strong>{{ languages[lan+"_username"] }}:</strong> {{ user.user_username }}</div>
+
+    </section>
+
+    <form action="/edit-profile/{{lan}}" method="GET" class="edit-form">
+        <button class="edit-btn" type="submit">{{ languages[lan+"_edit_profile"] }}</button>
+    </form>
+
+    {% if session.get('user') and session['user'].get('role_fk') != 1 %}
+    <form action="/delete-profile/{{lan}}" method="GET" class="delete-form">
+        <button class="delete-profile-btn" type="submit">{{ languages[lan+"_delete_profile"] }}</button>
+    </form>
+    {% endif %}
+</main>
+
+{% include "_footer.html" %}

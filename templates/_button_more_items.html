@@ -1,0 +1,4 @@
+{# templates/_button_more_items.html #}
+<button id="button_more_items" mix-get="/items/page/{{ page_number | default(2) }}?lan={{ lan }}">
+  {{ languages[lan + "_show_more"] }}
+</button>
