@@ -1,4 +1,7 @@
-from flask import Flask, session, render_template, request, redirect, url_for,jsonify
+from flask import Flask, session, render_template, request, redirect, url_for, jsonify
+
+import os
+from icecream import ic
 
 from werkzeug.datastructures import ImmutableMultiDict
 from flask_session import Session
@@ -13,7 +16,7 @@ import x
 
 import language as languages
 
-from icecream import ic
+
 ic.configureOutput(prefix=f'----- | ', includeContext=True)
 
 app = Flask(__name__)
@@ -21,6 +24,24 @@ app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
 
 app.jinja_env.globals['hasattr'] = hasattr
+
+
+BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
+RATES_PATH = os.path.join(BASE_DIR, "rates.txt")
+
+
+def load_rates():
+    """
+    This function tries to load exchange rates from a file called rates.txt.
+    If something goes wrong, it returns a default rate instead of crashing.
+    """
+    try:
+        with open(RATES_PATH, "r") as f:
+            data = f.read()
+        return json.loads(data)
+    except Exception as ex:
+        ic("load_rates error:", ex)
+        return {"rates": {"DKK": 7.0}}
 
 
 ##############################
@@ -37,21 +58,24 @@ def disable_cache(response):
 
 
 
-
-
-
 ########################################
 @app.get("/rates")
 def get_rates():
+    import requests
     try:
-        import requests
-        data = requests.get("https://api.exchangerate-api.com/v4/latest/usd")
-        ic(data.json())
-        with open("rates.txt", "w") as file:
-            file.write(data.text)
-        return data.json()
+        resp = requests.get("https://api.exchangerate-api.com/v4/latest/usd", timeout=10)
+        resp.raise_for_status()
+
+        with open(RATES_PATH, "w") as f:
+            f.write(resp.text)
+
+        return jsonify(resp.json())
     except Exception as ex:
-        ic(ex)
+        ic("Error fetching rates:", ex)
+        return jsonify({
+            "error": "Could not fetch exchange rates",
+            "details": str(ex)
+        }), 500
 
 
 
@@ -67,9 +91,9 @@ def show_signup(lan="en"):
         if lan not in languages_allowed: lan = "en"
         active_signup ="active"
         error_message = request.args.get("error_message", "")
-        return render_template("signup.html", 
-                            title="Signup us", 
-                            active_signup=active_signup, 
+        return render_template("signup.html",
+                            title="Signup us",
+                            active_signup=active_signup,
                             error_message=error_message,
                             old_values={},
                             languages=languages,
@@ -77,26 +101,27 @@ def show_signup(lan="en"):
     except Exception as ex:
         ic(ex)
         return str(ex)
-    
 
+
+
+########################################
 @app.post("/signup")
 @app.post("/signup/<lan>")
 def signup(lan="en"):
-    
+
     is_api = request.is_json or "application/json" in request.headers.get("Accept", "")
     if is_api:
         data = request.get_json(silent=True) or {}
         request.form = ImmutableMultiDict(data)
 
     try:
-        
         user_username      = x.validate_user_username()
         user_name          = x.validate_user_name()
         user_last_name     = x.validate_user_last_name()
         user_email         = x.validate_user_email()
         user_password      = x.validate_user_password()
         user_repeat_password = request.form.get("user_repeat_password", "").strip()
-       
+
         lan = request.form.get("lan", lan)
         if lan not in ["en", "dk"]:
             lan = "en"
@@ -126,11 +151,12 @@ def signup(lan="en"):
         verification_key = str(uuid.uuid4())
         user_verified_at = 0
 
-        q = """INSERT INTO users 
-        (user_pk, user_username, user_name, user_last_name, user_email, 
-         user_password, user_created_at, user_updated_at, user_deleted_at,
-         user_verification_key, user_verified_at) 
-        VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+        q = """INSERT INTO users
+            (user_pk, user_username, user_name, user_last_name, user_email,
+            user_password, user_created_at, user_updated_at, user_deleted_at,
+            user_verification_key, user_verified_at)
+            VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
 
         db, cursor = x.db()
         cursor.execute(q, (
@@ -146,7 +172,7 @@ def signup(lan="en"):
             user_verified_at
         ))
         if cursor.rowcount != 1:
-            raise Exception("System under maintenance")
+            raise Exception("Something went wrong during sign-up. Please try again.")
         db.commit()
 
         x.send_email(user_name, user_last_name, verification_key, user_email)
@@ -158,7 +184,7 @@ def signup(lan="en"):
 
         return redirect(url_for(
             "show_login",
-            message="Signup ok. Check your email to verify your account."
+            message = "Signup successful! Please check your email to verify your account."
         ))
 
     except Exception as ex:
@@ -271,9 +297,9 @@ def send_email():
     except Exception as ex:
         ic(ex)
         return "error"
-    
-    
-########################################### 
+
+
+###########################################
 @app.get("/login")
 @app.get("/login/<lan>")
 def show_login(lan="en"):
@@ -283,7 +309,7 @@ def show_login(lan="en"):
         message = request.args.get("message", "")
         return render_template("login.html",
             message=message,
-            old_values={},          
+            old_values={},
             user_email_error="",
             user_password_error="",
             active_login="active",
@@ -308,7 +334,7 @@ def login(lan="en"):
     try:
         languages_allowed = ["en", "dk"]
         if lan not in languages_allowed: lan = "en"
-        
+
         user_email    = x.validate_user_email()
         user_password = x.validate_user_password()
 
@@ -320,18 +346,18 @@ def login(lan="en"):
         if not user:
             raise Exception("User not found in database")
 
-        # ← BLOCKED‐USER CHECK
+    
         if user["user_blocked_at"] and user["user_blocked_at"] != 0:
             if is_api:
                 return jsonify({ "error": "Your account has been blocked." }), 403
             return render_template(
                 "login.html",
-                message="Your account has been blocked by an administrator.",
+                message="Your account has been blocked by an Admin.",
                 old_values={"user_email": user_email},
                 languages=languages,
                 lan=lan
             )
-        
+
         if user["user_deleted_at"] != 0:
             raise Exception("Your account has been deleted. Create a new account.")
 
@@ -358,7 +384,7 @@ def login(lan="en"):
         if "db" in locals():
             db.rollback()
 
-        
+
         if is_api:
             return jsonify({ "error": str(ex) }), 400
 
@@ -419,9 +445,9 @@ def login(lan="en"):
             )
 
         return render_template(
-            "login.html", 
-            message=str(ex), 
-            old_values=old_values, 
+            "login.html",
+            message=str(ex),
+            old_values=old_values,
             languages=languages,
             lan=lan
         ), 400
@@ -442,7 +468,7 @@ def show_forgot_password(lan="en"):
     try:
         languages_allowed = ["en", "dk"]
         if lan not in languages_allowed: lan = "en"
-        return render_template("forgot_password.html", 
+        return render_template("forgot_password.html",
                               message=request.args.get("message", ""),
                               languages=languages,
                               lan=lan)
@@ -462,7 +488,7 @@ def forgot_password(lan="en"):
 
     try:
         user_email = x.validate_user_email()
-        
+
         lan = request.form.get("lan", lan)
         if lan not in ["en", "dk"]:
             lan = "en"
@@ -510,11 +536,11 @@ def forgot_password(lan="en"):
 @app.get("/reset-password/<reset_key>")
 def show_reset_password(reset_key):
     is_api = "application/json" in request.headers.get("Accept", "")
-    lan = session.get("lang", "en")  
+    lan = session.get("lang", "en")
     if lan not in ["en", "dk"]:
         lan = "en"
     session["lang"] = lan
-    
+
     try:
         db, cursor = x.db()
         cursor.execute("SELECT * FROM users WHERE user_reset_key = %s", (reset_key,))
@@ -532,7 +558,7 @@ def show_reset_password(reset_key):
                 "user_email": user["user_email"]
             }), 200
 
-        
+
         return render_template("reset-password.html", reset_key=reset_key, message="", lan=lan, languages=languages)
 
     except Exception as ex:
@@ -556,7 +582,7 @@ def reset_password(reset_key):
     lan = session.get("lang", "en")
     if lan not in ["en", "dk"]:
         lan = "en"
-    
+
     try:
         new_password = x.validate_new_password()
 
@@ -572,12 +598,12 @@ def reset_password(reset_key):
         return redirect(url_for("show_login", message="Password updated. You can log in now.", lan=lan))
 
     except Exception as ex:
-        return render_template("reset-password.html", 
-                               reset_key=reset_key, 
-                               message=str(ex), 
+        return render_template("reset-password.html",
+                               reset_key=reset_key,
+                               message=str(ex),
                                status="error",
                                lan=lan,
-                               languages=languages) 
+                               languages=languages)
 
     finally:
         if "cursor" in locals(): cursor.close()
@@ -631,7 +657,7 @@ def delete_profile(lan):
         user = session["user"]
         current_password = request.form.get("current_password", "").strip()
 
-        # Get the complete user data from the database.
+        
         db, cursor = x.db()
         q = "SELECT * FROM users WHERE user_pk = %s"
         cursor.execute(q, (user["user_pk"],))
@@ -700,14 +726,14 @@ def confirm_delete(delete_key):
             return "Invalid or expired deletion link."
 
         q = "UPDATE users SET user_deleted_at = %s, user_delete_key = NULL WHERE user_pk = %s"
-        timestamp = int(time.time())  
+        timestamp = int(time.time())
         cursor.execute(q, (timestamp, user["user_pk"]))
         db.commit()
 
-        
+
         if session.get("user") and session["user"]["user_pk"] == user["user_pk"]:
             session.pop("user")
-        
+
         return "Your account has been deleted. You can no longer log in."
     except Exception as ex:
         return str(ex), 500
@@ -752,26 +778,38 @@ def ___Item_Page___():pass
 @app.get("/")
 @app.get("/<lan>")
 def view_index(lan="en"):
+    if lan not in ("en", "dk"):
+        lan = "en"
+
     try:
-        languages_allowed = ["en", "dk"]
-        if lan not in languages_allowed: lan = "en"
-        
         db, cursor = x.db()
-        q = "SELECT * FROM items WHERE item_blocked_at = 0 ORDER BY item_created_at LIMIT 2"
-        cursor.execute(q)
+        cursor.execute(
+            "SELECT * FROM items WHERE item_blocked_at = 0 "
+            "ORDER BY item_created_at LIMIT 2"
+        )
         items = cursor.fetchall()
-        rates = ""
-        with open("rates.txt", "r") as file:
-            rates = file.read() 
-        ic(rates)
-        rates = json.loads(rates)
-        return render_template("view_index.html", title="Company", items=items, rates=rates, languages=languages, lan=lan)
+
     except Exception as ex:
-        ic(ex)
-        return "ups"
+        ic("Error in view_index:", ex)
+        return f"Error loading homepage: {ex}", 500
+
     finally:
-        if "cursor" in locals(): cursor.close()
-        if "db" in locals(): db.close()
+        if "cursor" in locals():
+            cursor.close()
+        if "db" in locals():
+            db.close()
+
+    rates = load_rates()
+    ic("Rates:", rates)
+
+    return render_template(
+        "view_index.html",
+        title="Company",
+        items=items,
+        rates=rates,
+        languages=languages,
+        lan=lan
+    )
 
 
 
@@ -791,11 +829,7 @@ def get_item_by_pk(item_pk):
                 </mixhtml>
             """, 404
 
-        rates= ""
-        with open("rates.txt", "r") as file:
-            rates = file.read() 
-            rates = json.loads(rates)
-        
+        rates = load_rates()  # Use load_rates instead
         html_item = render_template("_item.html", item=item, rates=rates)
         return f"""
             <mixhtml mix-replace="#item">
@@ -804,12 +838,6 @@ def get_item_by_pk(item_pk):
         """
     except Exception as ex:
         ic(ex)
-        if "CPH Sightseer page number" in str(ex):
-            return """
-                <mixhtml mix-top="body">
-                    page number invalid
-                </mixhtml>
-            """
         return """
             <mixhtml mix-top="body">
                 ups
@@ -823,31 +851,34 @@ def get_item_by_pk(item_pk):
 
 ##############################
 @app.get("/items/page/<page_number>")
-def get_items_by_page(page_number):
-    try:
-        lan = request.args.get("lan", session.get("lang", "en"))
-        if lan not in ("en", "dk"):
-            lan = "en"
-        session["lang"] = lan
+@app.get("/<lan>/items/page/<page_number>")
+def get_items_by_page(page_number, lan="en"):
+    if lan not in ("en", "dk"):
+        lan = "en"
+    session["lang"] = lan
 
+    try:
         page = x.validate_page_number(page_number)
         per_page = 2
-        offset   = (page - 1) * per_page
-        limit    = per_page + 1
+        offset = (page - 1) * per_page
+        limit = per_page + 1
 
+       
         db, cursor = x.db()
         cursor.execute(
-            "SELECT * FROM items WHERE item_blocked_at = 0 ORDER BY item_created_at LIMIT %s OFFSET %s",
+            "SELECT * FROM items WHERE item_blocked_at = 0 "
+            "ORDER BY item_created_at LIMIT %s OFFSET %s",
             (limit, offset)
         )
         items = cursor.fetchall()
 
-        with open("rates.txt") as f:
+        with open(RATES_PATH) as f:
             rates = json.loads(f.read())
 
-        cards_html = ""
-        for itm in items[:per_page]:
-            cards_html += render_template("_item_mini.html", item=itm, rates=rates)
+        cards_html = "".join(
+            render_template("_item_mini.html", item=i, rates=rates)
+            for i in items[:per_page]
+        )
 
         if len(items) > per_page:
             button_html = render_template(
@@ -870,9 +901,11 @@ def get_items_by_page(page_number):
             {json.dumps(items[:per_page])}
           </mixhtml>
         """
+
     except Exception as ex:
         ic("Error in get_items_by_page:", ex)
         return str(ex), 500
+
     finally:
         if "cursor" in locals():
             cursor.close()
@@ -880,18 +913,17 @@ def get_items_by_page(page_number):
             db.close()
 
 
-
 ##############################
 @app.get("/search")
 def search():
     try:
-        search_for = request.args.get("q", "") 
+        search_for = request.args.get("q", "")
         db, cursor = x.db()
         q = "SELECT * FROM items WHERE item_name LIKE %s AND item_blocked_at = 0"
         cursor.execute(q, (f"{search_for}%",))
         rows = cursor.fetchall()
         ic(rows)
-        return rows 
+        return rows
     except Exception as ex:
         ic(ex)
         return "x", 400
@@ -909,10 +941,10 @@ def profile(lan="en"):
     try:
         languages_allowed = ["en", "dk"]
         if lan not in languages_allowed: lan = "en"
-        
+
         if not session.get("user"):
             return redirect(url_for("show_login"))
-        
+
         user = session["user"]
         is_session = True
         active_profile = "active"
@@ -940,25 +972,29 @@ def profile(lan="en"):
 
 def ___ADMIN___(): pass
 
-###############################################################
 @app.get("/admin")
 @app.get("/admin/<lan>")
 def admin_dashboard(lan="en"):
+    user = session.get("user")
+    if not user or user.get("role_fk") != 1:
+        return "Access denied", 403
+
+    
+    allowed = ["en", "dk"]
+    lan = request.args.get("lan", lan)
+    if lan not in allowed:
+        lan = "en"
+    session["lang"] = lan
+
     try:
-        if not session.get("user") or session["user"].get("role_fk") != 1:
-            return "Access denied", 403
-
-        lan = request.args.get("lan", lan)
-        languages_allowed = ["en", "dk"]
-        if lan not in languages_allowed:
-            lan = "en"
-
         db, cursor = x.db()
-        cursor.execute("CALL get_users()")
+        cursor.execute("SELECT * FROM users")
         all_users = cursor.fetchall()
-       
+
         users = [u for u in all_users if u.get("role_fk") != 1]
-        return render_template("admin.html",
+
+        return render_template(
+            "admin.html",
             title="Admin Dashboard",
             users=users,
             is_session=True,
@@ -966,14 +1002,15 @@ def admin_dashboard(lan="en"):
             languages=languages,
             lan=lan
         )
-        
+
     except Exception as ex:
-        print("Admin Dashboard Error:", ex)
+        app.logger.error(f"Admin Dashboard Error: {ex}", exc_info=True)
         return "System under maintenance", 500
+
     finally:
-        if "cursor" in locals(): 
+        if 'cursor' in locals():
             cursor.close()
-        if "db" in locals():
+        if 'db' in locals():
             db.close()
 
 
@@ -988,23 +1025,23 @@ def admin_user_items(lan="en"):
         languages_allowed = ["en", "dk"]
         if lan not in languages_allowed: lan = "en"
         session["lang"] = lan
-        
+
         if not session.get("user"):
             return redirect(url_for("show_login", lan=lan))
-        
-       
+
+
         if session["user"].get("role_fk") != 1:
             return redirect(url_for("profile", lan=lan))
-        
+
         db, cursor = x.db()
-        q = """SELECT items.*, users.user_username, users.user_name, users.user_last_name 
-               FROM items 
+        q = """SELECT items.*, users.user_username, users.user_name, users.user_last_name
+               FROM items
                JOIN users ON items.user_pk = users.user_pk
                ORDER BY items.item_created_at DESC"""
         cursor.execute(q)
         items = cursor.fetchall()
-        
-        return render_template("admin_user_items.html", 
+
+        return render_template("admin_user_items.html",
                               items=items,
                               active_admin_items="active",
                               is_session=True,
@@ -1027,39 +1064,39 @@ def block_item(item_pk):
     try:
         if not session.get("user") or session["user"].get("role_fk") != 1:
             return jsonify({"error": "Unauthorized"}), 403
-            
+
         block_time = int(time.time())
-        
+
         db, cursor = x.db()
-        
+
         q = """
-            SELECT items.item_name, users.user_name, users.user_last_name, users.user_email 
+            SELECT items.item_name, users.user_name, users.user_last_name, users.user_email
             FROM items
             JOIN users ON items.user_pk = users.user_pk
             WHERE items.item_pk = %s
         """
         cursor.execute(q, (item_pk,))
         item_data = cursor.fetchone()
-        
+
         if not item_data:
             return jsonify({"error": "Item not found"}), 404
-            
-       
+
+
         q = "UPDATE items SET item_blocked_at = %s WHERE item_pk = %s"
         cursor.execute(q, (block_time, item_pk))
         db.commit()
-        
+
         if cursor.rowcount != 1:
             return jsonify({"error": "Item not found or already blocked"}), 404
-        
+
         x.send_item_block_notification_email(
             item_data["user_name"],
             item_data["user_last_name"],
             item_data["user_email"],
             item_data["item_name"],
-            True  
+            True
         )
-        
+
         item = {"item_pk": item_pk}
         lan = session.get("lang", "en")
         button_unblock = render_template(
@@ -1074,13 +1111,13 @@ def block_item(item_pk):
             {button_unblock}
         </mixhtml>
         """
-        
+
     except Exception as ex:
         ic("Block item error:", ex)
         if "db" in locals():
             db.rollback()
         return jsonify({"error": str(ex)}), 500
-        
+
     finally:
         if "cursor" in locals():
             cursor.close()
@@ -1094,36 +1131,36 @@ def unblock_item(item_pk):
     try:
         if not session.get("user") or session["user"].get("role_fk") != 1:
             return jsonify({"error": "Unauthorized"}), 403
-            
+
         db, cursor = x.db()
-        
+
         q = """
-            SELECT items.item_name, users.user_name, users.user_last_name, users.user_email 
+            SELECT items.item_name, users.user_name, users.user_last_name, users.user_email
             FROM items
             JOIN users ON items.user_pk = users.user_pk
             WHERE items.item_pk = %s
         """
         cursor.execute(q, (item_pk,))
         item_data = cursor.fetchone()
-        
+
         if not item_data:
             return jsonify({"error": "Item not found"}), 404
-            
+
         q = "UPDATE items SET item_blocked_at = 0 WHERE item_pk = %s"
         cursor.execute(q, (item_pk,))
         db.commit()
-        
+
         if cursor.rowcount != 1:
             return jsonify({"error": "Item not found or already unblocked"}), 404
-        
+
         x.send_item_block_notification_email(
             item_data["user_name"],
             item_data["user_last_name"],
             item_data["user_email"],
             item_data["item_name"],
-            False  
+            False
         )
-       
+
         item = {"item_pk": item_pk}
         lan = session.get("lang", "en")
         button_block = render_template(
@@ -1138,13 +1175,13 @@ def unblock_item(item_pk):
             {button_block}
         </mixhtml>
         """
-        
+
     except Exception as ex:
         ic("Unblock item error:", ex)
         if "db" in locals():
             db.rollback()
         return jsonify({"error": str(ex)}), 500
-        
+
     finally:
         if "cursor" in locals():
             cursor.close()
@@ -1152,7 +1189,7 @@ def unblock_item(item_pk):
             db.close()
 
 
-############################################ 
+############################################
 @app.patch("/block/<user_pk>")
 def block_user(user_pk):
     lan = session.get("lang", "en")
@@ -1163,21 +1200,21 @@ def block_user(user_pk):
         db, cursor = x.db()
         cursor.execute("SELECT * FROM users WHERE user_pk = %s", (user_pk,))
         user_data = cursor.fetchone()
-        
+
         if not user_data:
             return "User not found", 404
-            
+
         q = "UPDATE users SET user_blocked_at = %s WHERE user_pk = %s"
         blocked_at = int(time.time())
         cursor.execute(q, (blocked_at, user_pk))
         db.commit()
-        
-        
+
+
         x.send_block_notification_email(
             user_data["user_name"],
             user_data["user_last_name"],
             user_data["user_email"],
-            True  
+            True
         )
 
         user = {"user_pk": user_pk}
@@ -1214,21 +1251,21 @@ def unblock_user(user_pk):
         db, cursor = x.db()
         cursor.execute("SELECT * FROM users WHERE user_pk = %s", (user_pk,))
         user_data = cursor.fetchone()
-        
+
         if not user_data:
             return "User not found", 404
-            
+
         q = "UPDATE users SET user_blocked_at = NULL WHERE user_pk = %s"
         cursor.execute(q, (user_pk,))
         db.commit()
-        
+
         x.send_block_notification_email(
             user_data["user_name"],
             user_data["user_last_name"],
             user_data["user_email"],
-            False 
+            False
         )
-        
+
         user = {"user_pk": user_pk}
         button_block = render_template(
             "_button_block_user.html",
@@ -1271,19 +1308,18 @@ def delete_user(user_id):
     finally:
         if "cursor" in locals(): cursor.close()
         if "db" in locals(): db.close()
-    
 
 
-def ___Item___(): pass 
 
-############################################ 
+def ___Item___(): pass
+
+############################################
 @app.get("/items/<item_pk>/window")
 @app.get("/<lan>/items/<item_pk>/window")
 def get_item_window(item_pk, lan="en"):
-    
     if lan not in ("en","dk"):
         lan = "en"
-    session["lang"] = lan         
+    session["lang"] = lan
 
     try:
         db, cursor = x.db()
@@ -1293,17 +1329,15 @@ def get_item_window(item_pk, lan="en"):
         if not row:
             return "Not found", 404
 
-        
-        with open("rates.txt","r") as f:
-            rates = json.loads(f.read())
+        rates = load_rates()  # Use load_rates instead
 
         item_detail = {
             "item_name":      row["item_name"],
             "item_price_usd": "{:,}".format(row["item_price"]),
             "item_price_dkk": "{:,.0f}".format(row["item_price"] * rates["rates"]["DKK"]),
             "item_image":     row["item_image"],
-            "item_description": row["item_description"],  
-            "item_contact_url": row["item_contact_url"]   
+            "item_description": row["item_description"],
+            "item_contact_url": row["item_contact_url"]
         }
 
         return render_template(
@@ -1322,22 +1356,20 @@ def get_item_window(item_pk, lan="en"):
         if "db" in locals():
             db.close()
 
-
-
 def ____Edit_User_and_Admin___(): pass
 
-############################################ 
+############################################
 @app.get("/edit-profile")
 @app.get("/edit-profile/<lan>")
 def show_edit_profile(lan="en"):
     try:
         if not session.get("user"):
             return redirect(url_for("show_login", lan=lan))
-        
+
         languages_allowed = ["en", "dk"]
         if lan not in languages_allowed:
             lan = "en"
-        
+
         return render_template(
             "edit_profile.html",
             user=session["user"],
@@ -1354,9 +1386,9 @@ def show_edit_profile(lan="en"):
             cursor.close()
         if "db" in locals():
             db.close()
-    
-    
-############################################ 
+
+
+############################################
 @app.post("/edit-profile")
 @app.post("/edit-profile/<lan>")
 def edit_profile(lan="en"):
@@ -1474,7 +1506,7 @@ def add_item_page(lan=None):
 @app.post("/add-item")
 def post_item():
     user = x.validate_user_logged()
-    
+
     try:
         image_names = x.validate_item_images()
 
@@ -1528,10 +1560,10 @@ def post_item():
 @app.delete("/images/<image_pk>")
 def delete_image(image_pk):
     user = x.validate_user_logged()
-    
+
     try:
         db, cursor = x.db()
-        
+
         q = """
             SELECT item_fk
               FROM images
@@ -1589,7 +1621,7 @@ def publish_item():
         selected_image_pk = x.validate_selected_image()
         item_description = x.validate_item_description()
         item_contact_url = x.validate_item_contact_url()
-        
+
         db, cursor = x.db()
         q = """
             SELECT image_name
@@ -1624,7 +1656,7 @@ def publish_item():
             item_contact_url
         ))
 
-        
+
         q = "UPDATE images SET item_fk = %s WHERE image_pk = %s"
         cursor.execute(q, (item_pk, selected_image_pk))
 
@@ -1633,7 +1665,7 @@ def publish_item():
         return f'<mixhtml mix-redirect="{url_for("add_item_page")}"></mixhtml>'
 
     except Exception as ex:
-        
+
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return (
                 f'<mixhtml mix-append="body">'
@@ -1669,21 +1701,21 @@ def publish_item():
 
 
 
-####################################################### 
+#######################################################
 @app.get("/edit-items")
 @app.get("/edit-items/<lan>")
 def show_edit_items(lan="en"):
     try:
-       
+
         if lan not in ("en", "dk"):
             lan = "en"
         session["lang"] = lan
 
-        
+
         if not session.get("user"):
             return redirect(url_for("show_login", lan=lan))
 
-       
+
         db, cursor = x.db()
         cursor.execute(
             "SELECT * FROM items WHERE user_pk = %s",
@@ -1712,7 +1744,7 @@ def show_edit_items(lan="en"):
 
 
 
-####################################################### 
+#######################################################
 @app.get("/edit-item/<item_pk>")
 @app.get("/edit-item/<item_pk>/<lan>")
 def show_edit_item(item_pk, lan="en"):
@@ -1755,50 +1787,50 @@ def show_edit_item(item_pk, lan="en"):
             db.close()
 
 
-####################################################### 
+#######################################################
 @app.post("/edit-item/<item_pk>")
 @app.post("/edit-item/<item_pk>/<lan>")
 def edit_item(item_pk, lan="en"):
     try:
         languages_allowed = ["en", "dk"]
         if lan not in languages_allowed: lan = "en"
-        
+
         if not session.get("user"):
             return redirect(url_for("show_login", lan=lan))
-        
+
         item_name = request.form.get("item_name", "")
         item_price = request.form.get("item_price", "")
         item_lon = request.form.get("item_lon", "")
         item_lat = request.form.get("item_lat", "")
         item_description = request.form.get("item_description", "")
         item_contact_url = request.form.get("item_contact_url", "")
-        
+
         if not item_name or len(item_name) < 3:
-            return render_template("edit_item.html", 
+            return render_template("edit_item.html",
                                   error_message="Item name must be at least 3 characters long.",
                                   old_values=request.form,
                                   item={"item_pk": item_pk},
                                   languages=languages,
                                   lan=lan)
-        
+
         db, cursor = x.db()
-        q = """UPDATE items 
+        q = """UPDATE items
                SET item_name = %s, item_price = %s, item_lon = %s, item_lat = %s,
-               item_description = %s, item_contact_url = %s 
+               item_description = %s, item_contact_url = %s
                WHERE item_pk = %s AND user_pk = %s"""
-        cursor.execute(q, (item_name, item_price, item_lon, item_lat, 
+        cursor.execute(q, (item_name, item_price, item_lon, item_lat,
                           item_description, item_contact_url,
                           item_pk, session["user"]["user_pk"]))
         db.commit()
-        
+
         if cursor.rowcount != 1:
             return "Item not found or you don't have permission to edit it."
-        
+
         return redirect(url_for("show_edit_items", lan=lan))
     except Exception as ex:
         ic(ex)
         if "db" in locals(): db.rollback()
-        return render_template("edit_item.html", 
+        return render_template("edit_item.html",
                               error_message=str(ex),
                               old_values=request.form,
                               item={"item_pk": item_pk},

@@ -13,14 +13,14 @@ ic.configureOutput(prefix=f'***** | ', includeContext=True)
 
 ##################################################
 def db():
-    db = mysql.connector.connect(
+    conn = mysql.connector.connect(
         host="mysql",
         user="root",
         password="password",
         database="company_b"
     )
-    cursor = db.cursor(dictionary=True)
-    return db, cursor
+    cursor = conn.cursor(dictionary=True)
+    return conn, cursor
 
 ##################################################
 def validate_user_logged():
