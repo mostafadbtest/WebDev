@@ -69,6 +69,7 @@
     </div>
 
     <input type="hidden" name="lan" value="{{ lan }}">
+    <input type="hidden" name="original_data" value="true">
     <button type="submit" class="save-btn">{{ languages[lan+"_save_changes"] if hasattr(languages, lan+"_save_changes") else "Save Changes" }}</button>
   </form>
 </main>

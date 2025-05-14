@@ -2,8 +2,9 @@
 
 main#login, main#signup {
     display: flex;
-    min-height: 100vh;
-    padding: 2rem;
+    min-height: calc(100vh - 0rem); 
+    padding: 4rem; 
+    margin-top: 0; 
 
     form {
         display: flex;
@@ -28,8 +29,31 @@ main#login, main#signup {
 
 
 @media (max-width: 768px) {
-    main#login, main#signup {
-        padding: 1rem;
+    main#login {
+        padding: 0.5rem 1rem 1rem; 
+        min-height: calc(100vh - 20rem); 
+        
+        form {
+            width: 100%;
+            padding: 1.5rem;
+        }
+
+        input, button {
+            width: 100%;
+            margin-bottom: 0;
+        }
+
+        button {
+            margin-top: 1rem;
+            position: static;
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    main#signup {
+        padding: 0.5rem 1rem 1rem; 
+        min-height: calc(100vh - 7rem); 
         
         form {
             width: 100%;

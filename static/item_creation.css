@@ -48,6 +48,19 @@
 }
 
 
+@media (max-width: 768px) {
+    .upload-form {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .upload-btn {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+    }
+}
+
 
 .image-grid {
     display: grid;

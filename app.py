@@ -346,7 +346,7 @@ def login(lan="en"):
         if not user:
             raise Exception("User not found in database")
 
-    
+
         if user["user_blocked_at"] and user["user_blocked_at"] != 0:
             if is_api:
                 return jsonify({ "error": "Your account has been blocked." }), 403
@@ -657,7 +657,7 @@ def delete_profile(lan):
         user = session["user"]
         current_password = request.form.get("current_password", "").strip()
 
-        
+
         db, cursor = x.db()
         q = "SELECT * FROM users WHERE user_pk = %s"
         cursor.execute(q, (user["user_pk"],))
@@ -863,7 +863,7 @@ def get_items_by_page(page_number, lan="en"):
         offset = (page - 1) * per_page
         limit = per_page + 1
 
-       
+
         db, cursor = x.db()
         cursor.execute(
             "SELECT * FROM items WHERE item_blocked_at = 0 "
@@ -979,7 +979,7 @@ def admin_dashboard(lan="en"):
     if not user or user.get("role_fk") != 1:
         return "Access denied", 403
 
-    
+
     allowed = ["en", "dk"]
     lan = request.args.get("lan", lan)
     if lan not in allowed:
@@ -1748,97 +1748,123 @@ def show_edit_items(lan="en"):
 @app.get("/edit-item/<item_pk>")
 @app.get("/edit-item/<item_pk>/<lan>")
 def show_edit_item(item_pk, lan="en"):
+    if lan not in ("en","dk"): lan = "en"
+    session["lang"] = lan
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("show_login", lan=lan))
+
     try:
-        if lan not in ("en", "dk"):
-            lan = "en"
-        session["lang"] = lan
-
-        if not session.get("user"):
-            return redirect(url_for("show_login", lan=lan))
-
-        db, cursor = x.db()
-        cursor.execute(
+        db, cur = x.db()
+        cur.execute(
             "SELECT * FROM items WHERE item_pk = %s AND user_pk = %s",
-            (item_pk, session["user"]["user_pk"])
+            (item_pk, user["user_pk"])
         )
-        item = cursor.fetchone()
-
+        item = cur.fetchone()
         if not item:
             return "Item not found or you don't have permission to edit it.", 404
-
-        return render_template(
-            "edit_item.html",
-            item=item,
-            old_values={},
-            is_session=True,
-            languages=languages,
-            lan=lan,
-            error_message=""
-        )
-
     except Exception as ex:
-        ic("Unexpected error in show_edit_item:", ex)
-        return "An unexpected server error occurred", 500
-
+        ic("Error loading item:", ex)
+        return "System under maintenance", 500
     finally:
-        if "cursor" in locals():
-            cursor.close()
-        if "db" in locals():
-            db.close()
+        if 'cur' in locals(): cur.close()
+        if 'db' in locals(): db.close()
+
+    return render_template(
+        "edit_item.html",
+        item=item,
+        old_values={},
+        is_session=True,
+        languages=languages,
+        lan=lan,
+        error_message=""
+    )
+
 
 
 #######################################################
 @app.post("/edit-item/<item_pk>")
 @app.post("/edit-item/<item_pk>/<lan>")
 def edit_item(item_pk, lan="en"):
+    if lan not in ("en","dk"): lan = "en"
+    session["lang"] = lan
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("show_login", lan=lan))
+
     try:
-        languages_allowed = ["en", "dk"]
-        if lan not in languages_allowed: lan = "en"
-
-        if not session.get("user"):
-            return redirect(url_for("show_login", lan=lan))
-
-        item_name = request.form.get("item_name", "")
-        item_price = request.form.get("item_price", "")
-        item_lon = request.form.get("item_lon", "")
-        item_lat = request.form.get("item_lat", "")
-        item_description = request.form.get("item_description", "")
-        item_contact_url = request.form.get("item_contact_url", "")
-
-        if not item_name or len(item_name) < 3:
-            return render_template("edit_item.html",
-                                  error_message="Item name must be at least 3 characters long.",
-                                  old_values=request.form,
-                                  item={"item_pk": item_pk},
-                                  languages=languages,
-                                  lan=lan)
-
-        db, cursor = x.db()
-        q = """UPDATE items
-               SET item_name = %s, item_price = %s, item_lon = %s, item_lat = %s,
-               item_description = %s, item_contact_url = %s
-               WHERE item_pk = %s AND user_pk = %s"""
-        cursor.execute(q, (item_name, item_price, item_lon, item_lat,
-                          item_description, item_contact_url,
-                          item_pk, session["user"]["user_pk"]))
-        db.commit()
-
-        if cursor.rowcount != 1:
-            return "Item not found or you don't have permission to edit it."
-
-        return redirect(url_for("show_edit_items", lan=lan))
+        db0, cur0 = x.db()
+        cur0.execute(
+            "SELECT * FROM items WHERE item_pk = %s AND user_pk = %s",
+            (item_pk, user["user_pk"])
+        )
+        original = cur0.fetchone()
+        if not original:
+            return "Item not found or you don't have permission to edit it.", 404
     except Exception as ex:
-        ic(ex)
-        if "db" in locals(): db.rollback()
-        return render_template("edit_item.html",
-                              error_message=str(ex),
-                              old_values=request.form,
-                              item={"item_pk": item_pk},
-                              languages=languages,
-                              lan=lan)
+        ic("Error loading original:", ex)
+        return "System under maintenance", 500
     finally:
-        if "cursor" in locals(): cursor.close()
-        if "db" in locals(): db.close()
+        if 'cur0' in locals(): cur0.close()
+        if 'db0' in locals(): db0.close()
+
+    form = request.form
+    def pick(name):
+        v = form.get(name, "").strip()
+        return v if v else original[name]
+
+    name  = pick("item_name")
+    price = pick("item_price")
+    lon   = pick("item_lon")
+    lat   = pick("item_lat")
+    desc  = pick("item_description")
+    url   = pick("item_contact_url")
+
+    error = None
+    if len(name) < 3:
+        error = "Item name must be at least 3 characters long."
+    else:
+        try:
+            price = float(price)
+            lon   = float(lon)
+            lat   = float(lat)
+        except ValueError:
+            error = "Price, longitude and latitude must be valid numbers."
+
+    if error:
+        return render_template(
+            "edit_item.html",
+            item=original,
+            old_values=form,
+            is_session=True,
+            languages=languages,
+            lan=lan,
+            error_message=error
+        ), 400
+
+    try:
+        db1, cur1 = x.db()
+        cur1.execute(
+            """UPDATE items
+               SET item_name=%s,
+                   item_price=%s,
+                   item_lon=%s,
+                   item_lat=%s,
+                   item_description=%s,
+                   item_contact_url=%s
+             WHERE item_pk=%s AND user_pk=%s""",
+            (name, price, lon, lat, desc, url, item_pk, user["user_pk"])
+        )
+        db1.commit()
+    except Exception as ex:
+        ic("Error saving changes:", ex)
+        if 'db1' in locals(): db1.rollback()
+        return "System under maintenance", 500
+    finally:
+        if 'cur1' in locals(): cur1.close()
+        if 'db1' in locals(): db1.close()
+
+    return redirect(url_for("show_edit_items", lan=lan))
 
 
 
